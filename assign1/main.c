@@ -54,7 +54,7 @@ void read(const char* fname) {
                             current = movie_obj;
                         }
                         else {
-                            current -> next = movie_obj;
+                            current->next = movie_obj;
                             current = movie_obj;
                         }
                     }
@@ -62,7 +62,7 @@ void read(const char* fname) {
             }
         }
     }
-    printf("\nThe file given has been processed %s and parsed %d movies\n\n", movies, num_movies);
+    printf("\nThe file given has been processed %s and parsed %d movies\n\n", fname, num_movies);
 }
 
 void menu() {
@@ -75,16 +75,70 @@ void menu() {
 
 }
 
+void moviesInYear() {
+    struct Movie *current = head;
+    int yearSelection;
+    printf("Please enter a year between 1900 and 2021: ");
+    if (scanf("%d", &yearSelection) == 1) {
+        if (yearSelection >= 1990 && yearSelection <= 2021) {
+            printf("\n%d: ", yearSelection);
+            while (current->next != NULL) {
+                if (current->year == yearSelection) {
+                    printf("%s, ", current->title);
+                }
+                current = current->next;
+            }
+            printf("\n");
+        }
+        else {
+            printf("Please select a year between 1900 and 2021.\n");
+        }
+    }
+    else {
+        printf("Please enter a valid integer");
+        while (getchar() != '\n');
+    }
+}
+
+void highPerYear() {
+    struct Movie * current = head;
+    for (int year = 1900; year <= 2021; year++) {
+        
+    }
+}
+
+
 int main(int argc, char* argv[]) {
 
     if(argc!= 2) {
         printf("Usage: %s <fname>\n", argv[0]);
         return 1;
     }
-
-    menu();
     read(argv[1]);
 
-    
+    int userComplete = 1;
+    int input;
+    do {
+        menu();
+        int menuSelection;
+
+        scanf("%d", &input);
+
+        if (input == 4) {
+            printf("\n\nShutting down........\n\n");
+            userComplete = 0;
+            break;
+        }
+        else if (input == 1) {
+            moviesInYear();
+        }
+        else if (input == 2) {
+            highPerYear();
+        }
+
+
+    } while (userComplete = 1);
+
+    return 0;
 }
 
