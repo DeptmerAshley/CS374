@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+
+// Movie structure with attached linked list
 typedef struct Movie {
     int year;
     float rating;
@@ -11,8 +13,10 @@ typedef struct Movie {
     struct Movie *next;
 } Movie;
 
+//Global Variable for the head of the linked list
 struct Movie *head = NULL;
 
+//Function that opens the file when the program is launched
 void read(const char* fname) {
     FILE *movies = fopen(fname, "r"); //change arg 1 to fname later
     if (!movies) {
@@ -23,12 +27,14 @@ void read(const char* fname) {
     struct Movie *current = NULL;
     char line[250];
 
+    //Skip the first line with column names
     if (fgets(line, sizeof(line), movies) == NULL) {
         fclose(movies);
         return;
     }
     int num_movies = 0;
 
+    //Iterate through the file lines and populate Movie structures into a linked list
     while(fgets(line, sizeof(line), movies) != NULL) {
         num_movies++;
         struct Movie *movie_obj = malloc(sizeof(struct Movie));
@@ -65,6 +71,8 @@ void read(const char* fname) {
     printf("\nThe file given has been processed %s and parsed %d movies\n\n", fname, num_movies);
 }
 
+
+//Menu function
 void menu() {
     printf("\n_______________________________________________________________________________\n\n");
     printf("1. Show movies released in the specified year\n");
@@ -75,6 +83,7 @@ void menu() {
 
 }
 
+//Function for movies in selected years
 void moviesInYear() {
     struct Movie *current = head;
     int yearSelection;
@@ -100,42 +109,103 @@ void moviesInYear() {
     }
 }
 
-void highPerYear() {
-    for (int year = 1900; year <= 2021; year++) {
-        struct Movie *hold = malloc(10*sizeof(Movie));
-        char highestRatingTitle[100] = "";
-        float highestRating = 0.0;
-        int i = 0;
-        struct Movie *current = head;
-        while (current != NULL) {
-            if (current->year == year) {
-                hold[i] = *current;
-                i++;
-            }
-            current = current->next;
-        }
-        highestRating = hold[0].rating;
-        for (int j = 0; j <= i; j++) {
-            if (hold[j].rating > highestRating) {
-                strcpy(highestRatingTitle, hold[j].title); 
-                highestRating = hold[j].rating;
-            }
-            else if (i == 1){
-                strcpy(highestRatingTitle, hold[0].title); 
-                highestRating = hold[0].rating;
-            }
-        }
-        if (highestRating == 0.0) {
-            continue;
-        }
-        else {
-            printf("\n%d: %s - %f", year, highestRatingTitle, highestRating);
-        }
-        free(hold);
-        hold = NULL;
-    }
+
+//A simplie print function
+void print(struct Movie *temp)
+{
+    printf("  %d", temp->year);
+    printf("  %.1f", temp->rating);
+    printf("  %s", temp->title);
+    printf("\n");
 }
 
+
+//splits the linked list into two parts
+void split(struct Movie *start, struct Movie **front, struct Movie **back) {
+    struct Movie *slow = start;
+    struct Movie *fast = start->next;
+
+    while (fast != NULL) {
+        fast = fast->next;
+        if (fast != NULL) {
+            slow = slow->next;
+            fast = fast->next;
+        }
+    }
+
+    *front = start;
+    *back = slow->next;
+    slow->next = NULL;
+}
+
+struct Movie* sortMerge(struct Movie* first, struct Movie* second ){
+    struct Movie* answer = NULL;
+
+    if (first == NULL){
+        return (second);
+    }
+    if (second == NULL){
+        return (first);
+    }
+
+    if (first->year <= second->year){
+        answer = first;
+        answer->next = sortMerge(first->next, second);
+    }
+    else{
+        answer = second;
+        answer->next = sortMerge(first, second->next);
+    }
+
+    return (answer);
+}
+
+//Algorithm for finding movies with the highest rating in each year
+void mergeSort(struct Movie** headTemp){
+    struct Movie* head = *headTemp;
+    struct Movie* first;
+    struct Movie* second;
+
+    if ((head == NULL) || (head->next == NULL)){
+        return;
+    }
+    //Calls split to split the list into smaller lists
+    split(head, &first, &second);
+    //Recursivly calls the function with the first and second list
+    mergeSort(&first);
+    mergeSort(&second);
+    //Sort merge then merges the lists back togeather
+    *headTemp = sortMerge(first, second);
+
+}
+
+void highPerYear() {
+//First merge sort is called to make the list oder from earlist to latest year    
+    mergeSort(&head);
+    
+    struct Movie *p = head;
+    int tempYear = p->year;
+    struct Movie *temp = p;
+    double highRate = p->rating;
+    //This loop will go through the list comparing the year of last interation to current
+    //If the year is differnt it prints the data foright rated movie
+    while (p != NULL) {
+        if (p->year != tempYear) {
+            print(temp);
+            highRate = p->rating;
+            temp = p;
+            tempYear = p->year;
+        } 
+        else if (p->rating > highRate) {
+            highRate = p->rating;
+            temp = p;
+        }
+        p = p->next;
+    }
+    print(temp);
+}
+
+//Function to cut strings in order to find the correct language
 char* stringCut(char* str) {
     while (*str == ' ') {
         str++;
@@ -144,25 +214,25 @@ char* stringCut(char* str) {
     while (end > str && *end == ' ') {
         end--;
     }
-    //returns the trimmed string
+
     end[1] = '\0';
     return str;
 }
 
+//Function that finds movie with selected languages
 struct Movie* searchLang(struct Movie *movies, const char *language) {
     int found = 0;
     while (movies != NULL) {
-        char temp_languages[100];
-        strcpy(temp_languages, movies->languages);
-//This part looks for the start and end bracket then comparing the token to choosen language
-        char *start = strchr(temp_languages, '[');
-        char *end = strchr(temp_languages, ']');
+        char tempLanguages[100];
+        strcpy(tempLanguages, movies->languages);
+        char *start = strchr(tempLanguages, '[');
+        char *end = strchr(tempLanguages, ']');
         if (start && end) {
             memmove(start, start + 1, end - start);
             start[end - start - 1] = '\0';
         }
 
-        char *token = strtok(temp_languages, ";"); 
+        char *token = strtok(tempLanguages, ";"); 
         
         while (token != NULL) {
             char* stringCutLanguage = stringCut(token); 
@@ -170,7 +240,7 @@ struct Movie* searchLang(struct Movie *movies, const char *language) {
             //if languages match it will then print the needed information
             if (strcasecmp(language, stringCutLanguage) == 0) {
                 printf("\n  %d", movies->year);
-                printf("\n  %s", movies->title);
+                printf("  %s", movies->title);
                 printf("\n");
                 found = 1;
                 break;
@@ -188,7 +258,7 @@ struct Movie* searchLang(struct Movie *movies, const char *language) {
 }
 
 
-
+//Function for user input on which language to search for
 void showMovieLang(){
     struct Movie *movies = head;
     char language[20];
